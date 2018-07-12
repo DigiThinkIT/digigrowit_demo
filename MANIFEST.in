@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include digigrowit_demo *.css
+recursive-include digigrowit_demo *.csv
+recursive-include digigrowit_demo *.html
+recursive-include digigrowit_demo *.ico
+recursive-include digigrowit_demo *.js
+recursive-include digigrowit_demo *.json
+recursive-include digigrowit_demo *.md
+recursive-include digigrowit_demo *.png
+recursive-include digigrowit_demo *.py
+recursive-include digigrowit_demo *.svg
+recursive-include digigrowit_demo *.txt
+recursive-exclude digigrowit_demo *.pyc
