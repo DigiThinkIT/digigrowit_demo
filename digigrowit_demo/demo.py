@@ -23,7 +23,8 @@ def simulate():
         sys.stdout.write("\rSimulating for {0}".format(frappe.flags.current_date))
         sys.stdout.flush()
         for factor in range(random.randint(0,sale_factor)):
-            make_sales_order(sale_factor)
+            if random.random() < 0.3:
+                make_sales_order(sale_factor)
         frappe.flags.current_date = add_to_date(frappe.flags.current_date, days=1)
         if getdate(frappe.flags.current_date).day%15==0:
             sale_factor+=1
