@@ -20,7 +20,7 @@ SUPPLIERS=[]
 def simulate():
     frappe.flags.mute_emails = True
     #setup_site()
-    no_of_days = 30
+    no_of_days = 365
     sale_factor = 1
     frappe.flags.current_date = add_to_date(today(), days=-no_of_days)
     make_customers(10)
@@ -173,4 +173,4 @@ def make_material_request(item_code):
 def get_suppliers():
     for s in frappe.get_all("Supplier"):
         SUPPLIERS.append(s.name)
-    gro
+    
