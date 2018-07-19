@@ -7,18 +7,24 @@ from frappe.utils.make_random import add_random_children, get_random
 import random
 from erpnext.accounts.doctype.payment_request.payment_request import make_payment_request, make_payment_entry
 from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
-
+from erpnext.stock.doctype.material_request.material_request import make_purchase_order
+from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
+from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice
+from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
 CUSTOMERS=[]
 ITEMS=frappe.get_all("Item")
+WAREHOUSE = frappe.get_all("Warehouse")[1].name
+SUPPLIERS=[]
 
 def simulate():
     frappe.flags.mute_emails = True
     #setup_site()
-    no_of_days = 365
+    no_of_days = 30
     sale_factor = 1
     frappe.flags.current_date = add_to_date(today(), days=-no_of_days)
     make_customers(10)
+    get_suppliers()
     while(frappe.flags.current_date < today()):
         sys.stdout.write("\rSimulating for {0}".format(frappe.flags.current_date))
         sys.stdout.flush()
@@ -76,7 +82,8 @@ def make_sales_order(sale_factor):
     for item in xrange(no_of_items_sold):
         sales_order_items.append({
             "item_code": random.choice(ITEMS).name,
-            "qty": random.randint(1, qty_factor)
+            "qty": random.randint(1, qty_factor),
+            "warehouse": WAREHOUSE
         })
     sales_order = frappe.get_doc({
         "doctype": "Sales Order",
@@ -89,6 +96,11 @@ def make_sales_order(sale_factor):
     sales_order.save()
     sales_order.submit()
     so = sales_order
+
+    for item in so.items:
+        if item.projected_qty<100:
+            reorder_stock(item.item_code)
+
     if flt(so.per_billed) != 100:
         payment_request = make_payment_request(dt="Sales Order", dn=so.name, recipient_id=so.contact_email,
             submit_doc=True, mute_email=True, use_dummy_message=True)
@@ -107,7 +119,58 @@ def make_sales_order(sale_factor):
     si.insert()
     si.submit()
 
+    dn = make_delivery_note(so.name)
+    dn.posting_date = frappe.flags.current_date
+    dn.insert()
+    dn.submit()
+
 def make_payment_entries_for_pos_invoice(si):
 	for data in si.payments:
 		data.amount = si.outstanding_amount
 		return
+
+def reorder_stock(item_code):
+    mr = make_material_request(item_code)
+    po = make_purchase_order(mr.name)
+    po.supplier = random.choice(SUPPLIERS)
+    po.transaction_date = frappe.flags.current_date
+    po.insert()
+    po.submit()
+    pr = make_purchase_receipt(po.name)
+    pr.transaction_date = frappe.flags.current_date
+    pr.insert()
+    pr.submit()
+    pi = make_purchase_invoice(pr.name)
+    pi.transaction_date = frappe.flags.current_date
+    pi.insert()
+    pi.submit()
+
+
+def make_material_request(item_code):
+	mr = frappe.new_doc("Material Request")
+
+	variant_of = frappe.db.get_value('Item', item_code, 'variant_of') or item_code
+
+	if frappe.db.get_value('BOM', {'item': variant_of, 'is_default': 1, 'is_active': 1}):
+		mr.material_request_type = 'Manufacture'
+	else:
+		mr.material_request_type = "Purchase"
+
+	mr.transaction_date = frappe.flags.current_date
+	mr.schedule_date = frappe.flags.current_date
+
+	mr.append("items", {
+		"doctype": "Material Request Item",
+		"schedule_date": frappe.flags.current_date,
+		"item_code": item_code,
+		"qty": random.choice([250, 500, 750, 1000]),
+        "warehouse": WAREHOUSE
+	})
+	mr.insert()
+	mr.submit()
+	return mr
+
+def get_suppliers():
+    for s in frappe.get_all("Supplier"):
+        SUPPLIERS.append(s.name)
+    gro
