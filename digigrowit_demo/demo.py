@@ -145,7 +145,7 @@ def reorder_stock(item_code):
 	pr.insert()
 	pr.submit()
 	pi = make_purchase_invoice(pr.name)
-	pi.transaction_date = frappe.flags.current_date
+	pi.posting_date = frappe.flags.current_date
 	pi.insert()
 	pi.submit()
 
