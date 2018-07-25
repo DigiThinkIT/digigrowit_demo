@@ -40,7 +40,7 @@ def simulate():
 		frappe.flags.current_date = add_to_date(frappe.flags.current_date, days=1)
 		if getdate(frappe.flags.current_date).day%15==0:
 			sale_factor+=1
-			make_customers(1)
+			make_customers(random.randint(1,5))
 		frappe.db.commit()
 
 def setup_site():
