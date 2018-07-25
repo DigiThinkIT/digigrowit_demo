@@ -13,7 +13,7 @@ from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_r
 from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 from frappe.utils.file_manager import get_file_path
-
+from erpnext.accounts.doctype.journal_entry.journal_entry import get_payment_entry_against_invoice
 CUSTOMERS=[]
 ITEMS=[]
 WAREHOUSE = frappe.get_all("Warehouse", filters={"warehouse_name": "Stores"})[0].name
@@ -33,8 +33,7 @@ def simulate():
 		sys.stdout.write("\rSimulating for {0}".format(frappe.flags.current_date))
 		sys.stdout.flush()
 		for factor in range(random.randint(0,sale_factor)):
-			if random.random() < 0.3:
-				make_sales_order(sale_factor)
+			make_sales_order(sale_factor)
 		frappe.flags.current_date = add_to_date(frappe.flags.current_date, days=1)
 		if getdate(frappe.flags.current_date).day%15==0:
 			sale_factor+=1
@@ -149,6 +148,12 @@ def reorder_stock(item_code):
 	pi.posting_date = frappe.flags.current_date
 	pi.insert()
 	pi.submit()
+	pe = frappe.new_doc("Journal Entry")
+	pe.update(get_payment_entry_against_invoice("Purchase Invoice", pi.name))
+	pe.posting_date=frappe.flags.current_date
+	pe.voucher_type = "Cash Entry"
+	pe.insert()
+	pe.submit()
 
 
 def make_material_request(item_code):
@@ -168,7 +173,7 @@ def make_material_request(item_code):
 		"doctype": "Material Request Item",
 		"schedule_date": frappe.flags.current_date,
 		"item_code": item_code,
-		"qty": random.choice([250, 500, 750, 1000]),
+		"qty": random.choice([100, 250, 500, 750]),
 		"warehouse": WAREHOUSE
 	})
 	mr.insert()
