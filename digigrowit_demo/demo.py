@@ -173,7 +173,7 @@ def make_material_request(item_code):
 		"doctype": "Material Request Item",
 		"schedule_date": frappe.flags.current_date,
 		"item_code": item_code,
-		"qty": random.choice([100, 250, 500, 750]),
+		"qty": random.choice([100, 250, 500]),
 		"warehouse": WAREHOUSE
 	})
 	mr.insert()
