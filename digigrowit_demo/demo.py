@@ -29,7 +29,7 @@ def simulate():
 	sale_factor = 1
 	frappe.flags.current_date = getdate("2017-1-1")
 	make_items()
-	make_customers(10)
+	make_customers(30)
 	get_suppliers()
 	frappe.db.commit()
 	while(frappe.flags.current_date < getdate(today())):
