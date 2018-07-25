@@ -220,7 +220,7 @@ def make_items():
 			pl.update({
 				"price_list": "Standard Buying",
 				"item_code": item.name,
-				"price_list_rate": flt(row.get('Cost')) - (flt(row.get('Cost')) * random.choice([0.1, 0.2, 0.25, 0.3]))
+				"price_list_rate": flt(row.get('Cost')) - (flt(row.get('Cost')) * random.choice([0.15, 0.2, 0.25, 0.3, 0.4]))
 			})
 			pl.save()
 			ITEMS.append(item.name)
