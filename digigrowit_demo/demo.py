@@ -14,22 +14,25 @@ from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchas
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 from frappe.utils.file_manager import get_file_path
 from erpnext.accounts.doctype.journal_entry.journal_entry import get_payment_entry_against_invoice
+from erpnext.controllers.accounts_controller import get_default_taxes_and_charges
+from erpnext import get_default_company
+
 CUSTOMERS=[]
 ITEMS=[]
 WAREHOUSE = frappe.get_all("Warehouse", filters={"warehouse_name": "Stores"})[0].name
 SUPPLIERS=[]
+COMPANY = get_default_company()
 
 def simulate():
 	frappe.flags.mute_emails = True
 	#setup_site()
-	no_of_days = 365
 	sale_factor = 1
-	frappe.flags.current_date = add_to_date(today(), days=-no_of_days)
+	frappe.flags.current_date = getdate("2017-1-1")
 	make_items()
 	make_customers(10)
 	get_suppliers()
 	frappe.db.commit()
-	while(frappe.flags.current_date < today()):
+	while(frappe.flags.current_date < getdate(today())):
 		sys.stdout.write("\rSimulating for {0}".format(frappe.flags.current_date))
 		sys.stdout.flush()
 		for factor in range(random.randint(0,sale_factor)):
@@ -38,7 +41,7 @@ def simulate():
 		if getdate(frappe.flags.current_date).day%15==0:
 			sale_factor+=1
 			make_customers(1)
-	frappe.db.commit()
+		frappe.db.commit()
 
 def setup_site():
 	args = {
@@ -96,12 +99,16 @@ def make_sales_order(sale_factor):
 		"order_type": "Shopping Cart",
 		"items": sales_order_items
 	})
+	taxes = get_default_taxes_and_charges("Sales Taxes and Charges Template", company=COMPANY)
+	if taxes.get('taxes'):
+		sales_order.update(taxes)
+	
 	sales_order.save()
 	sales_order.submit()
 	so = sales_order
 
 	for item in so.items:
-		if item.projected_qty<100:
+		if item.projected_qty<10:
 			reorder_stock(item.item_code)
 
 	if flt(so.per_billed) != 100:
@@ -123,6 +130,7 @@ def make_sales_order(sale_factor):
 	si.submit()
 
 	dn = make_delivery_note(so.name)
+	dn.set_posting_time=True
 	dn.posting_date = frappe.flags.current_date
 	dn.insert()
 	dn.submit()
@@ -140,7 +148,8 @@ def reorder_stock(item_code):
 	po.insert()
 	po.submit()
 	pr = make_purchase_receipt(po.name)
-	pr.transaction_date = frappe.flags.current_date
+	pr.set_posting_time=True
+	pr.posting_date = frappe.flags.current_date
 	pr.insert()
 	pr.submit()
 	pi = make_purchase_invoice(pr.name)
@@ -220,7 +229,7 @@ def make_items():
 			pl.update({
 				"price_list": "Standard Buying",
 				"item_code": item.name,
-				"price_list_rate": flt(row.get('Cost')) - (flt(row.get('Cost')) * random.choice([0.15, 0.2, 0.25, 0.3, 0.4]))
+				"price_list_rate": flt(row.get('Cost')) - (flt(row.get('Cost')) * random.uniform(0.2, 0.4))
 			})
 			pl.save()
 			ITEMS.append(item.name)
